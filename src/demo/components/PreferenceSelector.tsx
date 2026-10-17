@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useAnswers } from '../answers';
 import { optionSets } from '../capabilities';
 import { MIN_TARGET, metrics, useDensity } from '../density';
 import { useSession } from '../session';
@@ -10,8 +10,9 @@ type Props = {
 };
 
 export function PreferenceSelector({ label, optionSet }: Props) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const { answers, setAnswer } = useAnswers();
   const { recordInteraction } = useSession();
+  const selected = answers[optionSet] ?? null; // the host owns the answer
   const m = metrics[useDensity()];
   const options = optionSets[optionSet]?.options;
   if (!options) {
@@ -32,7 +33,7 @@ export function PreferenceSelector({ label, optionSet }: Props) {
             accessibilityState={{ selected: selected === option }}
             onPress={() => {
               if (option === selected) return; // only a real change counts
-              setSelected(option);
+              setAnswer(optionSet, option);
               recordInteraction('selection_changed');
             }}
             style={[

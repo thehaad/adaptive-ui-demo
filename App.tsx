@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import { AdaptiveRenderer, type LayoutConfig } from './src/adaptive';
+import { AnswersContext, answerLabel, type Answers } from './src/demo/answers';
+import { optionSets } from './src/demo/capabilities';
 import { fetchLayout, fetchPersonalizedLayout, putSession } from './src/demo/api';
 import { layoutA } from './src/demo/layouts';
 import { registry } from './src/demo/registry';
@@ -27,6 +29,8 @@ type Experience = {
   sessionId: string;
   source: LayoutSource;
   layout: LayoutConfig;
+  /** Onboarding answers by option-set id: in memory only, never sent to the server. */
+  answers: Answers;
   completed: boolean;
 };
 
@@ -39,7 +43,7 @@ export default function App() {
 
   function show(source: LayoutSource, layout: LayoutConfig, pref: string | null = null) {
     const sessionId = recorder.startSession({ layoutSource: source, preference: pref, layout });
-    setExperience({ sessionId, source, layout, completed: false });
+    setExperience({ sessionId, source, layout, answers: {}, completed: false });
   }
 
   function loadInitial() {
@@ -96,12 +100,39 @@ export default function App() {
     [sessionId, completed],
   );
 
+  // Bound to this session id, like the telemetry above: a stale tree can't touch a newer session.
+  const answers = experience?.answers;
+  const answersValue = useMemo(
+    () => ({
+      answers: answers ?? {},
+      setAnswer: (optionSet: string, value: string) =>
+        setExperience((e) =>
+          e && e.sessionId === sessionId && !e.completed
+            ? { ...e, answers: { ...e.answers, [optionSet]: value } }
+            : e,
+        ),
+    }),
+    [sessionId, answers],
+  );
+
   if (experience?.completed) {
+    // Option-set order comes from the manifest; unanswered sets are skipped.
+    const summary = Object.keys(optionSets).filter((id) => experience.answers[id]);
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.congrats}>
           <Text style={styles.congratsTitle}>Congratulations!</Text>
           <Text style={styles.congratsText}>You're all set. Your personalized plan is ready.</Text>
+          {summary.length > 0 && (
+            <View style={styles.summary}>
+              <Text style={styles.summaryTitle}>Your preferences</Text>
+              {summary.map((id) => (
+                <Text key={id} style={styles.summaryRow}>
+                  {answerLabel(id)}: <Text style={styles.summaryValue}>{experience.answers[id]}</Text>
+                </Text>
+              ))}
+            </View>
+          )}
           <Pressable accessibilityRole="button" style={[styles.button, styles.centered]} onPress={startOver}>
             <Text style={styles.buttonText}>Start over</Text>
           </Pressable>
@@ -145,7 +176,9 @@ export default function App() {
               Layout: {experience.layout.id} ({experience.source})
             </Text>
             <SessionContext.Provider key={experience.sessionId} value={sessionValue}>
-              <AdaptiveRenderer layout={experience.layout} registry={registry} />
+              <AnswersContext.Provider value={answersValue}>
+                <AdaptiveRenderer layout={experience.layout} registry={registry} />
+              </AnswersContext.Provider>
             </SessionContext.Provider>
           </>
         )}
@@ -168,6 +201,10 @@ const styles = StyleSheet.create({
   hint: { fontSize: 12, color: '#888', marginTop: 4 },
   congrats: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
   centered: { alignSelf: 'center' },
+  summary: { alignSelf: 'stretch', maxWidth: 360, padding: 16, borderRadius: 12, backgroundColor: '#f4f4f5', gap: 6, marginBottom: 12 },
+  summaryTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  summaryRow: { fontSize: 16, color: '#444' },
+  summaryValue: { fontWeight: '600', color: '#000' },
   congratsTitle: { fontSize: 32, fontWeight: '700' },
   congratsText: { fontSize: 18, color: '#444', textAlign: 'center', marginBottom: 12 },
   button: {
