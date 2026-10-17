@@ -1,5 +1,25 @@
 {
   "optionSets": {
-    "workout_location": { "options": ["Home", "Gym", "Outdoors"] }
+    "workout_location": {
+      "description": "Where the user will usually train",
+      "options": ["Home", "Gym", "Outdoors"]
+    },
+    "experience_level": {
+      "description": "How experienced the user is with regular exercise",
+      "options": ["Beginner", "Intermediate", "Advanced"]
+    },
+    "workout_focus": {
+      "description": "What the user wants to concentrate on",
+      "options": ["Strength", "Cardio", "Mobility", "Recovery"]
+    },
+    "session_length": {
+      "description": "How long a typical workout should be",
+      "options": ["15 min", "30 min", "45 min", "60 min"]
+    }
+  },
+  "actions": {
+    "complete_onboarding": {
+      "description": "Finishes onboarding; the host app records completion"
+    }
   }
 }

@@ -23,7 +23,7 @@ SERVER_LAYOUT = {
     "id": "server",
     "root": {
         "component": "Row",
-        "props": {"direction": "column"},
+        "props": {"direction": "column", "breakpoint": 600, "density": "comfortable"},
         "children": [
             {
                 "component": "WelcomeCard",
@@ -35,6 +35,10 @@ SERVER_LAYOUT = {
             {
                 "component": "PreferenceSelector",
                 "props": {"label": "Training place", "optionSet": "workout_location"},
+            },
+            {
+                "component": "ActionButton",
+                "props": {"label": "Complete onboarding", "action": "complete_onboarding"},
             },
         ],
     },

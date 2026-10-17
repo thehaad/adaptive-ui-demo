@@ -7,13 +7,18 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  View,
 } from 'react-native';
 import { AdaptiveRenderer, type LayoutConfig } from './src/adaptive';
 import { fetchLayout, fetchPersonalizedLayout, putSession } from './src/demo/api';
 import { layoutA } from './src/demo/layouts';
 import { registry } from './src/demo/registry';
 import { SessionContext } from './src/demo/session';
-import { createSessionRecorder, type LayoutSource } from './src/demo/sessionRecorder';
+import {
+  createSessionRecorder,
+  type InteractionEvent,
+  type LayoutSource,
+} from './src/demo/sessionRecorder';
 
 const recorder = createSessionRecorder(putSession);
 
@@ -37,13 +42,26 @@ export default function App() {
     setExperience({ sessionId, source, layout, completed: false });
   }
 
+  function loadInitial() {
+    return fetchLayout()
+      .then((layout) => show('static', layout))
+      .catch(() => show('fallback', layoutA));
+  }
+
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    fetchLayout()
-      .then((layout) => show('static', layout))
-      .catch(() => show('fallback', layoutA));
+    void loadInitial();
   }, []);
+
+  /** Demo only: leave the congratulations screen and begin a fresh, separately measured session. */
+  function startOver() {
+    setExperience(null);
+    setPreference('');
+    setError(null);
+    setGenerating(false);
+    void loadInitial(); // starting a session also retries any unsent telemetry
+  }
 
   async function personalize() {
     const text = preference.trim();
@@ -58,17 +76,40 @@ export default function App() {
     }
   }
 
-  function complete() {
-    if (!experience) return;
-    recorder.complete(experience.sessionId);
-    setExperience({ ...experience, completed: true });
-  }
-
   const sessionId = experience?.sessionId;
+  const completed = experience?.completed ?? false;
+  // Everything the composed UI can do is bound to this one session id.
   const sessionValue = useMemo(
-    () => ({ recordInteraction: () => sessionId && recorder.recordInteraction(sessionId) }),
-    [sessionId],
+    () => ({
+      completed,
+      recordInteraction: (event: InteractionEvent) => {
+        if (sessionId) recorder.recordInteraction(sessionId, event);
+      },
+      // The host decides what each approved action does. Completion telemetry is queued and
+      // synced in the background: it never blocks, and a failed sync never reopens onboarding.
+      runAction: (action: string) => {
+        if (!sessionId || action !== 'complete_onboarding') return;
+        recorder.complete(sessionId); // idempotent: keeps the first completion time
+        setExperience((e) => (e && e.sessionId === sessionId ? { ...e, completed: true } : e));
+      },
+    }),
+    [sessionId, completed],
   );
+
+  if (experience?.completed) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.congrats}>
+          <Text style={styles.congratsTitle}>Congratulations!</Text>
+          <Text style={styles.congratsText}>You're all set. Your personalized plan is ready.</Text>
+          <Pressable accessibilityRole="button" style={[styles.button, styles.centered]} onPress={startOver}>
+            <Text style={styles.buttonText}>Start over</Text>
+          </Pressable>
+        </View>
+        <StatusBar style="auto" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -106,15 +147,6 @@ export default function App() {
             <SessionContext.Provider key={experience.sessionId} value={sessionValue}>
               <AdaptiveRenderer layout={experience.layout} registry={registry} />
             </SessionContext.Provider>
-            <Pressable
-              style={[styles.button, experience.completed && styles.disabled]}
-              disabled={experience.completed}
-              onPress={complete}
-            >
-              <Text style={styles.buttonText}>
-                {experience.completed ? 'Onboarding complete ✓' : 'Complete onboarding'}
-              </Text>
-            </Pressable>
           </>
         )}
       </ScrollView>
@@ -134,9 +166,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   hint: { fontSize: 12, color: '#888', marginTop: 4 },
+  congrats: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 12 },
+  centered: { alignSelf: 'center' },
+  congratsTitle: { fontSize: 32, fontWeight: '700' },
+  congratsText: { fontSize: 18, color: '#444', textAlign: 'center', marginBottom: 12 },
   button: {
     marginVertical: 12,
     alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,

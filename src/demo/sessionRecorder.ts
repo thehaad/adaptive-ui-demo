@@ -2,12 +2,18 @@ import type { LayoutConfig } from '../adaptive';
 
 export type LayoutSource = 'static' | 'ai' | 'fallback';
 
+/** Generic, platform-neutral interaction vocabulary. */
+export type InteractionEvent = 'selection_changed' | 'navigation_next' | 'navigation_back';
+export type EventCounts = Record<InteractionEvent, number>;
+
 export type SessionRecord = {
   id: string;
   layoutSource: LayoutSource;
   preference: string | null;
   layout: LayoutConfig;
   startedAt: string;
+  eventCounts: EventCounts;
+  /** Always the sum of eventCounts. */
   interactionCount: number;
   completedAt: string | null;
 };
@@ -76,6 +82,7 @@ export function createSessionRecorder(send: Send) {
         id,
         ...init,
         startedAt: new Date().toISOString(),
+        eventCounts: { selection_changed: 0, navigation_next: 0, navigation_back: 0 },
         interactionCount: 0,
         completedAt: null,
       };
@@ -83,9 +90,17 @@ export function createSessionRecorder(send: Send) {
       void flush();
       return id;
     },
-    /** Counts one interaction for exactly this session; ignored once it is completed. */
-    recordInteraction(id: string) {
-      update(id, (r) => (r.completedAt ? null : { ...r, interactionCount: r.interactionCount + 1 }));
+    /** Counts one interaction event for exactly this session; ignored once it is completed. */
+    recordInteraction(id: string, event: InteractionEvent) {
+      update(id, (r) =>
+        r.completedAt
+          ? null
+          : {
+              ...r,
+              eventCounts: { ...r.eventCounts, [event]: r.eventCounts[event] + 1 },
+              interactionCount: r.interactionCount + 1,
+            },
+      );
     },
     /** Completes this session once; later calls keep the first completion time. */
     complete(id: string) {

@@ -16,13 +16,18 @@ const preferences = {
   },
 };
 
-/** Layout A: always stacked vertically. */
+const complete = {
+  component: 'ActionButton',
+  props: { label: 'Complete onboarding', action: 'complete_onboarding' },
+};
+
+/** Layout A: always stacked vertically. Used as the offline fallback. */
 export const layoutA: LayoutConfig = {
   id: 'A',
   root: {
     component: 'Row',
-    props: { direction: 'column' },
-    children: [welcome, preferences],
+    props: { direction: 'column', density: 'comfortable' },
+    children: [welcome, preferences, complete],
   },
 };
 
@@ -31,7 +36,7 @@ export const layoutB: LayoutConfig = {
   id: 'B',
   root: {
     component: 'Row',
-    props: { direction: 'row', breakpoint: 600 },
-    children: [welcome, preferences],
+    props: { direction: 'row', breakpoint: 600, density: 'comfortable' },
+    children: [welcome, preferences, complete],
   },
 };
