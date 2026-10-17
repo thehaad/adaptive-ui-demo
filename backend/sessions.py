@@ -95,8 +95,16 @@ def _iso(value: datetime | None) -> str | None:
     return value.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
+def default_db_path() -> Path:
+    return Path(__file__).parent / "data" / "sessions.db"
+
+
+def db_path() -> Path:
+    return Path(os.environ.get("ADAPTIVEUI_DB_PATH") or default_db_path())
+
+
 def _connect() -> sqlite3.Connection:
-    path = Path(os.environ.get("ADAPTIVEUI_DB_PATH") or Path(__file__).parent / "data" / "sessions.db")
+    path = db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path, timeout=10, isolation_level=None)  # explicit transactions
     conn.row_factory = sqlite3.Row

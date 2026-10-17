@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 
 from layout_ai import LayoutGenerationError, NotConfiguredError, generate_layout
+from insights import insights_for_prompt
 from layout_validation import validate_layout
 from sessions import SessionConflict, SessionRecord, upsert_session
 
@@ -57,7 +58,7 @@ class PersonalizeRequest(BaseModel):
 @app.post("/api/layout/personalize")
 def personalize_layout(request: PersonalizeRequest):
     try:
-        return generate_layout(request.preference.strip())
+        return generate_layout(request.preference.strip(), insights=insights_for_prompt())
     except NotConfiguredError:
         raise HTTPException(status_code=503, detail="Layout generation is not configured on the server")
     except LayoutGenerationError as error:
