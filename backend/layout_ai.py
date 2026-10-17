@@ -1,5 +1,7 @@
 """Generate a personalized layout with Claude (structured output + catalog validation)."""
 
+import hashlib
+import json
 from typing import Annotated, Literal, Union
 
 import anthropic
@@ -24,7 +26,7 @@ class WelcomeCardNode(BaseModel):
 
 class PreferenceSelectorProps(BaseModel):
     label: str
-    options: list[str]
+    optionSet: str  # validated against the capability manifest, not the schema
 
 
 class PreferenceSelectorNode(BaseModel):
@@ -96,7 +98,9 @@ def generate_layout(preference: str, client: anthropic.Anthropic | None = None) 
         if response.parsed_output is None:
             raise LayoutGenerationError(f"No structured output (stop_reason={response.stop_reason})")
 
-        layout = {"id": "personalized", **response.parsed_output.model_dump()}
+        layout = response.parsed_output.model_dump()
+        digest = hashlib.sha256(json.dumps(layout, sort_keys=True).encode()).hexdigest()[:12]
+        layout = {"id": f"ai-{digest}", **layout}  # content-addressed: same layout, same id
         errors = validate_layout(layout)
         if not errors:
             return layout

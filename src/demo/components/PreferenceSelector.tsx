@@ -1,13 +1,23 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { optionSets } from '../capabilities';
+import { useSession } from '../session';
 
 type Props = {
   label: string;
-  options: string[];
+  optionSet: string;
 };
 
-export function PreferenceSelector({ label, options }: Props) {
+export function PreferenceSelector({ label, optionSet }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
+  const { recordInteraction } = useSession();
+  const options = optionSets[optionSet]?.options;
+  if (!options) {
+    throw new Error(
+      `PreferenceSelector: unknown optionSet "${optionSet}". ` +
+        `Known: ${Object.keys(optionSets).join(', ')}.`,
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -16,7 +26,10 @@ export function PreferenceSelector({ label, options }: Props) {
         {options.map((option) => (
           <Pressable
             key={option}
-            onPress={() => setSelected(option)}
+            onPress={() => {
+              setSelected(option);
+              recordInteraction();
+            }}
             style={[styles.chip, selected === option && styles.chipSelected]}
           >
             <Text style={selected === option && styles.chipTextSelected}>

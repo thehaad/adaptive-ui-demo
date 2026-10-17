@@ -1,5 +1,14 @@
 """Catalog of components Claude may use. Mirrors the frontend registry (src/demo/registry.ts)."""
 
+import json
+from pathlib import Path
+
+# Product Capability Manifest: shared with the Expo app (src/demo/capabilities.ts).
+# Assumes backend and frontend live in the same repo.
+OPTION_SETS: dict[str, dict] = json.loads(
+    (Path(__file__).parent.parent / "capabilities.json").read_text()
+)["optionSets"]
+
 MAX_CHILDREN = 6
 
 CATALOG = {
@@ -21,11 +30,11 @@ CATALOG = {
         },
     },
     "PreferenceSelector": {
-        "description": "A labelled set of selectable option chips, e.g. workout duration, focus area or training place.",
+        "description": "A labelled set of selectable option chips. The choices come from the host app's option set; never invent choices.",
         "container": False,
         "props": {
             "label": {"type": "str", "max_len": 80},
-            "options": {"type": "str_list", "min_items": 2, "max_items": 8, "max_len": 40},
+            "optionSet": {"type": "option_set"},
         },
     },
 }
@@ -47,4 +56,5 @@ def _describe(spec: dict) -> str:
         return f"integer {spec['min']}-{spec['max']}"
     if kind == "str":
         return f"string (<= {spec['max_len']} chars)"
-    return f"list of {spec['min_items']}-{spec['max_items']} strings (<= {spec['max_len']} chars each)"
+    sets = "; ".join(f'"{key}" ({", ".join(s["options"])})' for key, s in OPTION_SETS.items())
+    return f"one of the host app's option sets: {sets}"

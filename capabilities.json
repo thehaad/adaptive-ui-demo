@@ -1,0 +1,5 @@
+{
+  "optionSets": {
+    "workout_location": { "options": ["Home", "Gym", "Outdoors"] }
+  }
+}

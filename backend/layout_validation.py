@@ -1,6 +1,6 @@
 """Application-level validation of a layout dict against the component catalog."""
 
-from components import CATALOG, MAX_CHILDREN
+from components import CATALOG, MAX_CHILDREN, OPTION_SETS
 
 
 def validate_layout(layout: dict) -> list[str]:
@@ -62,12 +62,5 @@ def _check_prop(value, rule: dict) -> str | None:
     if kind == "str":
         ok = isinstance(value, str) and 0 < len(value.strip()) and len(value) <= rule["max_len"]
         return None if ok else f"must be a non-empty string of at most {rule['max_len']} characters"
-    ok = (
-        isinstance(value, list)
-        and rule["min_items"] <= len(value) <= rule["max_items"]
-        and all(isinstance(v, str) and 0 < len(v.strip()) <= rule["max_len"] for v in value)
-    )
-    return None if ok else (
-        f"must be a list of {rule['min_items']}-{rule['max_items']} non-empty strings "
-        f"of at most {rule['max_len']} characters"
-    )
+    ok = isinstance(value, str) and value in OPTION_SETS
+    return None if ok else f"must be one of the option sets {sorted(OPTION_SETS)}"

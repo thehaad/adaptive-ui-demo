@@ -11,8 +11,8 @@ const welcome = {
 const preferences = {
   component: 'PreferenceSelector',
   props: {
-    label: 'Workout focus',
-    options: ['Strength', 'Cardio', 'Mobility', 'Recovery'],
+    label: 'Training place',
+    optionSet: 'workout_location',
   },
 };
 
