@@ -2,12 +2,18 @@ import type { LayoutConfig } from '../adaptive';
 
 const welcome = {
   component: 'WelcomeCard',
-  props: { title: 'Welcome back', message: 'Pick what you want to see.' },
+  props: {
+    title: 'Ready to move?',
+    message: "Tell us how you like to train and we'll shape your plan.",
+  },
 };
 
 const preferences = {
   component: 'PreferenceSelector',
-  props: { label: 'Interests', options: ['News', 'Sports', 'Music', 'Tech'] },
+  props: {
+    label: 'Workout focus',
+    options: ['Strength', 'Cardio', 'Mobility', 'Recovery'],
+  },
 };
 
 /** Layout A: always stacked vertically. */

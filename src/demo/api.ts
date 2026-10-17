@@ -9,3 +9,18 @@ export async function fetchLayout(): Promise<LayoutConfig> {
   }
   return response.json();
 }
+
+export async function fetchPersonalizedLayout(
+  preference: string,
+): Promise<LayoutConfig> {
+  const response = await fetch(`${API_URL}/api/layout/personalize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ preference }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.detail ?? `Request failed: ${response.status}`);
+  }
+  return response.json();
+}
